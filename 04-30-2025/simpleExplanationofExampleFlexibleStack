@@ -1,0 +1,350 @@
+Full Example Walkthrough
+Let's trace through the main method example:
+javaMultiStack stacks = new MultiStack(3, 3);
+
+Creates 3 stacks, each with capacity 3
+Initial state:
+
+Stack 0: start = 0, capacity = 3, size = 0
+Stack 1: start = 3, capacity = 3, size = 0
+Stack 2: start = 6, capacity = 3, size = 0
+
+
+values array of size 9, all zeros
+
+java// Stack 0 operations
+stacks.push(0, 10);
+stacks.push(0, 20);
+stacks.push(0, 30);
+
+After pushing 10: Stack 0 has size = 1, values[0] = 10
+After pushing 20: Stack 0 has size = 2, values[1] = 20
+After pushing 30: Stack 0 has size = 3, values[2] = 30
+Stack 0 is now full
+
+javaSystem.out.println("Stack 0 peek: " + stacks.peek(0));
+
+peek(0) returns values[2] = 30
+
+java// This should cause stack 1 to shift
+stacks.push(0, 40);
+
+Stack 0 is full, so expand(0) is called
+expand(0) calls shift(1) to make room
+shift(1) shifts stack 1's boundary:
+
+Stack 1 becomes: start = 4, capacity = 2, size = 0
+
+
+Stack 0's capacity increases to 4
+Push 40 to stack 0: size = 4, values[3] = 40
+
+javaSystem.out.println("Stack 0 peek after expansion: " + stacks.peek(0));
+
+peek(0) returns values[3] = 40
+
+java// Stack 1 operations
+stacks.push(1, 100);
+stacks.push(1, 200);
+
+Stack 1 now has start = 4, capacity = 2, size = 2
+values[4] = 100, values[5] = 200
+
+javaSystem.out.println("Stack 1 peek: " + stacks.peek(1));
+
+peek(1) returns values[5] = 200
+
+java// Stack 2 operations
+stacks.push(2, 1000);
+stacks.push(2, 2000);
+
+Stack 2 still has start = 6, capacity = 3
+After pushes: size = 2, values[6] = 1000, values[7] = 2000
+
+javaSystem.out.println("Stack 2 peek: " + stacks.peek(2));
+
+peek(2) returns values[7] = 2000
+
+java// Pop operation
+System.out.println("Popping from stack 0: " + stacks.pop(0));
+
+pop(0) returns values[3] = 40
+Stack 0 now has size = 3
+
+javaSystem.out.println("Stack 0 peek after pop: " + stacks.peek(0));
+
+peek(0) returns values[2] = 30
+
+Final Array State
+After all operations:
+
+values = [10, 20, 30, 0, 100, 200, 1000, 2000, 0]
+Stack 0: start = 0, capacity = 4, size = 3 (elements: 10, 20, 30)
+Stack 1: start = 4, capacity = 2, size = 2 (elements: 100, 200)
+Stack 2: start = 6, capacity = 3, size = 2 (elements: 1000, 2000)
+
+
+
+
+
+
+MultiStack Class Explained :
+The MultiStack class implements multiple stacks within a single array. It allows each stack to dynamically adjust its size by shifting elements when necessary. Let's break down each component with examples.
+Class Structure
+Class Overview
+javapublic class MultiStack {
+    private class StackInfo { ... }     // Inner class for stack metadata
+    private StackInfo[] info;           // Array of stack metadata
+    private int[] values;               // Array holding all stack values
+    
+    // Exception classes
+    public class FullStackException extends Exception { ... }
+    public class EmptyStackException extends Exception { ... }
+    
+    // Methods for stack operations
+    // ...
+}
+StackInfo Inner Class
+The StackInfo class holds metadata about each stack:
+javaprivate class StackInfo {
+    public int start;     // Index where the stack starts
+    public int size;      // Current number of elements in the stack
+    public int capacity;  // Total capacity allocated to this stack
+    
+    // Methods for stack info operations
+    // ...
+}
+StackInfo Methods
+1. Constructor
+javapublic StackInfo(int start, int capacity) {
+    this.start = start;
+    this.capacity = capacity;
+    this.size = 0;    // Initially, stack is empty
+}
+Example: When we create a MultiStack(3, 3) (3 stacks, each with capacity 3):
+
+Stack 0: start = 0, capacity = 3, size = 0
+Stack 1: start = 3, capacity = 3, size = 0
+Stack 2: start = 6, capacity = 3, size = 0
+
+2. isWithinStackCapacity
+javapublic boolean isWithinStackCapacity(int index) {
+    // If outside of bounds of array, return false.
+    if (index < 0 || index >= values.length) {
+        return false;
+    }
+    
+    // If index wraps around, adjust it.
+    int contiguousIndex = index < start ? index + values.length : index;
+    int end = start + capacity;
+    return start <= contiguousIndex && contiguousIndex < end;
+}
+Example: For stack 1 with start = 3, capacity = 3:
+
+Is index 4 within capacity? Yes, because 3 ≤ 4 < 6
+Is index 8 within capacity? No, because 8 is outside the range [3, 6)
+If the array wraps around and index 0 belongs to stack 1, the contiguous index would be 0 + array.length
+
+3. lastCapacityIndex
+javapublic int lastCapacityIndex() {
+    return adjustIndex(start + capacity - 1);
+}
+Example: For stack 1 with start = 3, capacity = 3, the last capacity index is:
+
+adjustIndex(3 + 3 - 1) = adjustIndex(5) = 5
+
+4. lastElementIndex
+javapublic int lastElementIndex() {
+    return adjustIndex(start + size - 1);
+}
+Example: For stack 1 with start = 3, size = 2:
+
+adjustIndex(3 + 2 - 1) = adjustIndex(4) = 4
+
+5. isFull and isEmpty
+javapublic boolean isFull() {
+    return size == capacity;
+}
+
+public boolean isEmpty() {
+    return size == 0;
+}
+Example:
+
+If stack 1 has size = 3, capacity = 3, isFull() returns true
+If stack 1 has size = 0, isEmpty() returns true
+
+MultiStack Constructor
+javapublic MultiStack(int numberOfStacks, int defaultSize) {
+    // Create metadata for all the stacks.
+    info = new StackInfo[numberOfStacks];
+    for (int i = 0; i < numberOfStacks; i++) {
+        info[i] = new StackInfo(defaultSize * i, defaultSize);
+    }
+    values = new int[numberOfStacks * defaultSize];
+}
+Example: Creating MultiStack(3, 3):
+
+Creates an array info of size 3 to hold stack metadata
+Initializes each stack's info:
+
+Stack 0: start = 0, capacity = 3
+Stack 1: start = 3, capacity = 3
+Stack 2: start = 6, capacity = 3
+
+
+Creates an array values of size 9 (3 stacks × 3 capacity)
+
+Helper Methods
+1. adjustIndex
+javaprivate int adjustIndex(int index) {
+    int max = values.length;
+    return ((index % max) + max) % max;
+}
+Example: For an array of length 9:
+
+adjustIndex(10) = ((10 % 9) + 9) % 9 = (1 + 9) % 9 = 1 (wraps around)
+adjustIndex(-1) = ((-1 % 9) + 9) % 9 = (-1 + 9) % 9 = 8 (handles negative indices)
+
+2. nextIndex & previousIndex
+javaprivate int nextIndex(int index) {
+    return adjustIndex(index + 1);
+}
+
+private int previousIndex(int index) {
+    return adjustIndex(index - 1);
+}
+Example: For an array of length 9:
+
+nextIndex(8) = adjustIndex(9) = 0 (wraps to beginning)
+previousIndex(0) = adjustIndex(-1) = 8 (wraps to end)
+
+Stack Operations
+1. push
+javapublic void push(int stackNum, int value) throws FullStackException {
+    if (allStacksAreFull()) {
+        throw new FullStackException();
+    }
+    
+    // If this stack is full, expand it.
+    StackInfo stack = info[stackNum];
+    if (stack.isFull()) {
+        expand(stackNum);
+    }
+    
+    // Find the index of the top element in the array + 1,
+    // and increment the stack pointer
+    stack.size++;
+    values[stack.lastElementIndex()] = value;
+}
+Example: Pushing value 10 to stack 0:
+
+Check if all stacks are full - they're not, so continue
+Get stack 0's info: start = 0, capacity = 3, size = 0
+Check if this stack is full - it's not, so continue
+Increment size to 1
+Calculate lastElementIndex() = adjustIndex(0 + 1 - 1) = 0
+Set values[0] = 10
+
+2. pop
+javapublic int pop(int stackNum) throws EmptyStackException {
+    StackInfo stack = info[stackNum];
+    if (stack.isEmpty()) {
+        throw new EmptyStackException();
+    }
+    
+    // Remove last element.
+    int value = values[stack.lastElementIndex()];
+    values[stack.lastElementIndex()] = 0; // Clear item
+    stack.size--; // Shrink size
+    return value;
+}
+Example: Popping from stack 0 after pushing 10, 20:
+
+Check if stack is empty - it's not
+lastElementIndex() = adjustIndex(0 + 2 - 1) = 1
+Get value: values[1] = 20
+Clear: values[1] = 0
+Decrement size to 1
+Return 20
+
+3. peek
+javapublic int peek(int stackNum) throws EmptyStackException {
+    StackInfo stack = info[stackNum];
+    if (stack.isEmpty()) {
+        throw new EmptyStackException();
+    }
+    return values[stack.lastElementIndex()];
+}
+Example: Peeking stack 0 after pushing 10, 20:
+
+Check if stack is empty - it's not
+lastElementIndex() = adjustIndex(0 + 2 - 1) = 1
+Return values[1] = 20
+
+4. expand
+javaprivate void expand(int stackNum) {
+    shift((stackNum + 1) % info.length);
+    info[stackNum].capacity++;
+}
+Example: Expanding stack 0:
+
+Call shift(1) to shift stack 1
+Increase stack 0's capacity by 1
+
+5. shift
+javaprivate void shift(int stackNum) {
+    System.out.println("/// Shifting " + stackNum);
+    
+    StackInfo stack = info[stackNum];
+    
+    // If this stack is at its full capacity, then you need to move the next stack over by one element.
+    // This stack can now claim the freed index.
+    if (stack.size >= stack.capacity) {
+        int nextStack = (stackNum + 1) % info.length;
+        shift(nextStack);
+        stack.capacity++; // claim index that next stack lost
+    }
+    
+    // Shift all elements in stack over by one.
+    int index = stack.lastCapacityIndex();
+    while (stack.isWithinStackCapacity(index)) {
+        values[index] = values[previousIndex(index)];
+        index = previousIndex(index);
+    }
+    
+    // Adjust stack data.
+    values[stack.start] = 0; // Clear item
+    stack.start = nextIndex(stack.start); // move start
+    stack.capacity--; // Shrink capacity
+}
+Example: Shifting stack 1 with start = 3, capacity = 3, size = 2 containing values [100, 200]:
+
+Check if stack is at full capacity - it's not, so skip recursive shift
+lastCapacityIndex() = adjustIndex(3 + 3 - 1) = 5
+Starting at index 5:
+
+values[5] = values[4] (Shifts value 200 from index 4 to 5)
+values[4] = values[3] (Shifts value 100 from index 3 to 4)
+
+
+Clear value at start: values[3] = 0
+Move start: start = nextIndex(3) = 4
+Decrease capacity to 2
+
+6. Utility Methods
+javapublic int numberOfElements() {
+    int size = 0;
+    for (StackInfo sd : info) {
+        size += sd.size;
+    }
+    return size;
+}
+
+public boolean allStacksAreFull() {
+    return numberOfElements() == values.length;
+}
+Example: After pushing 2 elements to each of 3 stacks:
+
+numberOfElements() = 2 + 2 + 2 = 6
+allStacksAreFull() = (6 == 9) = false
